@@ -1,5 +1,5 @@
 """
-The classes in data_entry.py follow the work of:
+The classes in data_entry.py follow, with slight variations, the work of:
 
 Braker, J., Heinemann, L., Schreieder, T.: Aramis at touché 2022: Argument detection in pictures using machine learning.
 Working Notes Papers of the CLEF (2022)
@@ -9,7 +9,7 @@ M., Potthast, M., Stein, B.: On Stance Detection in Image Retrieval for Argument
 
 Schreieder, T., Braker, J.: Touché 2022 Best of Labs: Neural Image Retrieval for Argumentation. CLEF (2023)
 
-Source Code can be found at: https://github.com/webis-de/SIGIR-23
+The original source code can be found at: https://github.com/webis-de/SIGIR-23
 """
 
 import dataclasses
