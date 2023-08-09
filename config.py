@@ -17,6 +17,10 @@ class Config:
 
     _cfg = None
 
+    Path(data_dir).mkdir(parents=True, exist_ok=True)
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    Path(working_dir).mkdir(parents=True, exist_ok=True)
+
     @classmethod
     def get(cls) -> 'Config':
         cfg = cls()
