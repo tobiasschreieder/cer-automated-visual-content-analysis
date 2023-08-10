@@ -11,16 +11,15 @@ from pathlib import Path
 cfg = Config.get()
 
 
-def preprocess_image_vision(image_vision: Dict[Any, Any]) -> List[str]:
+def preprocess_image_vision(image_vision: Dict[Any, Any]) -> Dict[str, float]:
     """
-    Extract list with strings of all image-vision outputs
+    Extract dictionary with strings of all image-vision outputs and corresponding scores
     :param image_vision: Dictionary with image_vision outputs for specific webpage
-    :return: List with label_annotations
+    :return: Dictionary with label_annotations and scores
     """
-    label_annotations = list()
+    label_annotations = dict()
     for label_annotation in image_vision["labelAnnotations"]:
-        label_annotations.append(label_annotation["description"])
-    label_annotations = list(set(label_annotations))
+        label_annotations.setdefault(label_annotation["description"], round(label_annotation["score"], 4))
 
     return label_annotations
 
