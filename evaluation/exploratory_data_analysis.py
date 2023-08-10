@@ -13,6 +13,8 @@ cfg = Config.get()
 def exploratory_data_analysis() -> Dict[int, Dict[str, Union[float, str]]]:
     """
     Create dictionary with exploratory-data-analysis statistics
+    Calculate: Average Amount Elements per Image, Minimum Amount Elements per Image, Maximum Amount Elements per Image,
+    Amount Empty Sets, Amount Unique Words
     :return: Dictionary with results per topic
     """
     dataset = load_dataset()
@@ -28,6 +30,8 @@ def exploratory_data_analysis() -> Dict[int, Dict[str, Union[float, str]]]:
         average_amount_elements = list()
         unique_words = list()
         amount_empty_sets = 0
+        min_amount_elements = 99999
+        max_amount_elements = 0
         for element in elements:
             average_amount_elements.append(len(element))
             for word in element:
@@ -35,13 +39,18 @@ def exploratory_data_analysis() -> Dict[int, Dict[str, Union[float, str]]]:
                     unique_words.append(word)
             if len(element) == 0:
                 amount_empty_sets += 1
+            if len(element) > max_amount_elements:
+                max_amount_elements = len(element)
+            if len(element) < min_amount_elements:
+                min_amount_elements = len(element)
 
         average_amount_elements = mean(average_amount_elements)
         amount_unique_words = len(unique_words)
 
         topic_title = Topic.get(topic_number=topic_id).title
         stats = {"title": topic_title, "average_amount_elements": average_amount_elements,
-                 "amount_empty_sets": amount_empty_sets, "amount_unique_words": amount_unique_words}
+                 "amount_empty_sets": amount_empty_sets, "min_amount_elements": min_amount_elements,
+                 "max_amount_elements": max_amount_elements, "amount_unique_words": amount_unique_words}
 
         eda.setdefault(topic_id, stats)
 
@@ -55,10 +64,12 @@ def create_eda_md_table(eda: Dict[int, Dict[str, Union[float, str]]]) -> str:
     :return: String with MD-Table
     """
     text = "# Exploratory Data Analysis \n"
-    text += "| Topic-ID | Title | Average Amount Elements per Image | Amount Empty Sets | Amount Unique Words | \n"
-    text += "|---|---|---|---|---| \n"
+    text += ("| Topic-ID | Title | Average Amount Elements per Image | Minimum Amount Elements per Image | "
+             "Maximum Amount Elements per Image| Amount Empty Sets | Amount Unique Words | \n")
+    text += "|---|---|---|---|---|---|---| \n"
     for topic, stats in eda.items():
         text += ("| " + str(topic) + " | " + str(stats["title"]) + " | " + str(stats["average_amount_elements"]) + " | "
+                 + str(stats["min_amount_elements"]) + " | " + str(stats["max_amount_elements"]) + " | "
                  + str(stats["amount_empty_sets"]) + " | " + str(stats["amount_unique_words"]) + " | \n")
 
     return text
