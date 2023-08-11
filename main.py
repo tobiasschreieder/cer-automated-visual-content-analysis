@@ -1,5 +1,6 @@
 from preprocessing.preprocessing import create_dataset, load_dataset
 from evaluation.exploratory_data_analysis import run_exploratory_data_analysis
+from computer_vision.computer_vision import run_clarifai
 
 """
 Main Method
@@ -14,5 +15,3 @@ Main Method
 
 # Exploratory Data Analysis
 # run_exploratory_data_analysis()
-
-
