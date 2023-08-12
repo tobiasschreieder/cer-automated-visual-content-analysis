@@ -7,13 +7,10 @@ from sklearn.model_selection import train_test_split
 from time import time
 import json
 
-#from config import Config
+from config import Config
 
-#cfg = Config.get()
+cfg = Config.get()
 
-working_dir = Path('working/')
-
-# TODO: option for gridsearch? / saving datasets? ist aber deterministish, glaube ich
 class Classifier():
 
 
@@ -38,9 +35,6 @@ class Classifier():
         # evaluate on predictions of test set
         if y_pred is None:
             y_pred = self.predict(self.X_test)
-        
-        print(f'y_pred: {y_pred}')
-        print(f'y_test: {self.y_test}')
 
         # metrics
         acc = accuracy_score(self.y_test, y_pred)
@@ -55,10 +49,7 @@ class Classifier():
 
         if save:
             file_name = f'eval_{self.model_name}_{time()}.json'
-
-            #classifier_path = cfg.working_dir.joinpath("classifier")
-            classifier_path = working_dir.joinpath("classifier")
-
+            classifier_path = cfg.working_dir.joinpath("classifier")
             Path(classifier_path).mkdir(parents=True, exist_ok=True)
             doc = {
                 'model': self.model_name,
