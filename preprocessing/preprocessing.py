@@ -1,3 +1,5 @@
+import operator
+
 from preprocessing.data_entry import Topic, DataEntry, Clarifai
 from config import Config
 
@@ -66,6 +68,7 @@ def create_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: Lis
 
     # Save DataFrame as pickle-file
     dataset.to_pickle(cfg.working_dir.joinpath(Path('dataset.pkl')))
+    print("Dataset saved at working/dataset.pkl.")
 
 
 def load_dataset() -> pd.DataFrame:
@@ -78,13 +81,15 @@ def load_dataset() -> pd.DataFrame:
     return dataset
 
 
-def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: List[int] = None):
+def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: List[int] = None,
+                            max_amount_labels: int = 10):
     """
     Create Clarifai DataFrame with image-ids, topic-ids and List with image-vision outputs; save clarifai_dataset.pkl
     in working/
     :param size_dataset: Specify amount of images per topic (size_dataset > 0)
     :param set_seed: If True: seed(1) is used
     :param topic_ids: Specify topic-ids that should be used [51, 100]
+    :param max_amount_labels: Specify maximum amount of extracted labels in decreasing score order
     """
     # If no topic-ids are specified: Select all available topic-ids
     if topic_ids is None:
@@ -120,11 +125,20 @@ def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic
     first_iteration = True
     for topic_id in clarifai_topic_images:
         for image_id in clarifai_topic_images[topic_id]:
-            image_vision = Clarifai.load(image_id=image_id).image_vision
+            image_vision_original = Clarifai.load(image_id=image_id).image_vision
+            image_vision_original = dict(sorted(image_vision_original.items(), key=operator.itemgetter(1),
+                                                reverse=True))
 
-            # Round label values
-            for label in image_vision:
-                image_vision[label] = round(image_vision[label], 4)
+            # Round label values and test max amount of labels
+            image_vision = dict()
+            count_labels = 0
+            for label, score in image_vision_original.items():
+                if max_amount_labels is not None:
+                    if count_labels < max_amount_labels:
+                        image_vision.setdefault(label, round(score, 4))
+                        count_labels += 1
+                else:
+                    image_vision.setdefault(label, round(score, 4))
 
             # Create DataFrame
             data = {"image_id": image_id, "topic_id": topic_id, "data": image_vision}
@@ -136,6 +150,7 @@ def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic
 
     # Save DataFrame as pickle-file
     dataset.to_pickle(cfg.working_dir.joinpath(Path('clarifai_dataset.pkl')))
+    print("Clarifai dataset saved at working/clarifai_dataset.pkl.")
 
 
 def load_clarifai_dataset() -> pd.DataFrame:
