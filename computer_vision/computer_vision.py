@@ -1,4 +1,5 @@
 from preprocessing.data_entry import DataEntry
+from config import Config
 
 from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
 from clarifai_grpc.grpc.api import resources_pb2, service_pb2, service_pb2_grpc
@@ -7,7 +8,6 @@ from clarifai_grpc.grpc.api.status import status_code_pb2
 from typing import Dict, List
 from pathlib import Path
 import json
-from config import Config
 
 
 cfg = Config.get()
@@ -32,6 +32,22 @@ channel = ClarifaiChannel.get_grpc_channel()
 stub = service_pb2_grpc.V2Stub(channel)
 metadata = (('authorization', 'Key ' + read_pat()),)
 userDataObject = resources_pb2.UserAppIDSet(user_id=USER_ID, app_id=APP_ID)
+
+
+def test_existing_clarifai(image_id: str) -> bool:
+    """
+    Test if Clarifai Image Recognition results already exist in working/clarifai/
+    :param image_id: Specify image-id
+    :return: True if results already exist
+    """
+    file = cfg.working_dir.joinpath("clarifai")
+    file = file.joinpath("clarifai_" + str(image_id) + ".json")
+
+    existing = False
+    if file.exists():
+        existing = True
+
+    return existing
 
 
 def call_clarifai(image_file_location: Path) -> Dict[str, float]:
@@ -91,7 +107,11 @@ def run_clarifai(image_ids: List[str]):
     Run Clarifai Computer Vision for given image-ids
     :param image_ids: List with image-ids
     """
+    print("Start calling Clarifai Image Recognition API for " + str(len(image_ids)) + " images.")
     for image_id in image_ids:
-        image_path = DataEntry.load(image_id=image_id).webp_path
-        results = call_clarifai(image_file_location=image_path)
-        save_clarifai_output(results=results, image_id=image_id)
+        if not test_existing_clarifai(image_id=image_id):
+            image_path = DataEntry.load(image_id=image_id).webp_path
+            results = call_clarifai(image_file_location=image_path)
+            save_clarifai_output(results=results, image_id=image_id)
+        else:
+            print("Clarifai result for image-id " + str(image_id) + " already exists! Skipping id..")
