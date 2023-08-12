@@ -1,6 +1,7 @@
-from preprocessing.preprocessing import create_dataset, load_dataset
+from preprocessing.preprocessing import create_dataset, load_dataset, create_clarifai_dataset, load_clarifai_dataset
 from evaluation.exploratory_data_analysis import run_exploratory_data_analysis
 from computer_vision.computer_vision import run_clarifai
+
 
 """
 Main Method
@@ -15,3 +16,5 @@ Main Method
 
 # Exploratory Data Analysis
 # run_exploratory_data_analysis()
+
+# run_clarifai(image_ids=["I00000ed2c519e6b9710fd6ad", "I000a29953c54d0b4380724fa"])

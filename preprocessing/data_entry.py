@@ -1,5 +1,5 @@
 """
-The classes in data_entry.py follow, with slight variations, the work of:
+The classes Ranking, Webpage, DataEntry and Topic in data_entry.py follow, with slight variations, the work of:
 
 Braker, J., Heinemann, L., Schreieder, T.: Aramis at touché 2022: Argument detection in pictures using machine learning.
 Working Notes Papers of the CLEF (2022)
@@ -39,7 +39,6 @@ class Ranking:
     def load(cls, ranking: str) -> 'Ranking':
         """
         Create a Ranking object for the given ranking string.
-
         :param ranking: the string to parse
         :return: Ranking for given string
         """
@@ -72,7 +71,6 @@ class WebPage:
     def load(cls, page_path: Path, image_id: str) -> 'WebPage':
         """
         Create a WebPage object for the given page path.
-
         :param image_id: The id of the parent image
         :param page_path: The path from witch the new object is generated
         :return: WebPage for given page path
@@ -147,7 +145,6 @@ class DataEntry:
     def load(cls, image_id) -> 'DataEntry':
         """
         Create a DataEntry object for the given image id.
-
         :param image_id: The image id of the new object
         :return: DataEntry for given image id
         :raises ValueError: if image_id doesn't exist
@@ -200,7 +197,6 @@ class DataEntry:
     def get_image_ids(max_size: int = -1) -> List[str]:
         """
         Returns number of images ids in a sorted list. If max_size is < 1 return all image ids.
-
         :param max_size: Parameter to determine maximal length of returned list.
         :return: List of image ids as strings
         :raises FileNotFoundError: if main directory doesn't exist
@@ -289,3 +285,58 @@ class Topic:
         df = self.__get_topic_image_df()
         ids = df[df['topic'] == self.number]
         return ids['image_id'].tolist()
+
+
+@dataclasses.dataclass
+class Clarifai:
+    image_vision: Dict
+
+    log = logging.getLogger('Clarifai')
+
+    @classmethod
+    def load(cls, image_id) -> 'Clarifai':
+        """
+        Create a Clarifai object for the given image id.
+        :param image_id: The image id of the new object
+        :return: Clarifai for given image id
+        :raises ValueError: if image_id doesn't exist
+        """
+        clarifai_path = cfg.working_dir.joinpath(Path('clarifai'))
+        Path(clarifai_path).mkdir(parents=True, exist_ok=True)
+        im_path = clarifai_path.joinpath(Path('clarifai_' + image_id + '.json'))
+
+        if not im_path.exists():
+            cls.log.debug('Path to load: %s exists %s', im_path, im_path.exists())
+            raise ValueError('{} is not a valid image hash'.format(image_id))
+
+        with im_path.open(encoding="utf8") as file:
+            image_vision = json.load(file)
+
+        return cls(image_vision=image_vision)
+
+    @staticmethod
+    def get_image_ids(max_size: int = -1) -> List[str]:
+        """
+        Returns images ids of existing Clarifai results in a sorted list. If max_size is < 1 return all image ids.
+        :param max_size: Parameter to determine maximal length of returned list.
+        :return: List of image ids as strings
+        """
+        clarifai_path = cfg.working_dir.joinpath(Path('clarifai'))
+        Path(clarifai_path).mkdir(parents=True, exist_ok=True)
+
+        id_list = []
+        count = 0
+        check_length = max_size > 0
+        for image_hash in clarifai_path.iterdir():
+            if image_hash.name in faulty_ids:
+                continue
+
+            # Get image_id from file-name
+            image_id = image_hash.name.replace('clarifai_', '')
+            image_id = image_id.replace('.json', '')
+
+            id_list.append(image_id)
+            count += 1
+            if check_length and count >= max_size:
+                return sorted(id_list)
+        return sorted(id_list)
