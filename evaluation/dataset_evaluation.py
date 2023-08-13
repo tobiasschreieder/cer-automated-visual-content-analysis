@@ -65,6 +65,7 @@ def run_dataset_evaluation(file_1, file_2):
     reliability.to_csv(out_path.joinpath('eval_intercoder_reliability.csv'))
     validity.to_csv(out_path.joinpath('eval_topic_validity.csv'))
 
+
 def print_dataset_evaluation():
     out_path = cfg.output_dir
     reliability = pd.read_csv(out_path.joinpath('eval_intercoder_reliability.csv'), index_col=0)
