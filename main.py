@@ -1,6 +1,6 @@
 from preprocessing.preprocessing import create_dataset, load_dataset, create_clarifai_dataset, load_clarifai_dataset
 from evaluation.exploratory_data_analysis import run_exploratory_data_analysis
-from evaluation.dataset_evaluation import run_dataset_evaluation
+from evaluation.dataset_evaluation import run_dataset_evaluation, print_dataset_evaluation
 # from computer_vision.computer_vision import run_clarifai
 from classification.classification import Classifier
 from sklearn.svm import SVC
@@ -27,4 +27,5 @@ Main Method
 #clf.fit()
 #clf.evaluate()
 
-run_dataset_evaluation('image_eval_t.txt', 'image_eval_p.txt')
+#run_dataset_evaluation('image_eval_t.txt', 'image_eval_p.txt')
+print_dataset_evaluation()

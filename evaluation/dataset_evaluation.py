@@ -37,7 +37,7 @@ def run_dataset_evaluation(file_1, file_2):
     sizes = labels[['Topic_x']].groupby(by='Topic_x').size()
     reliability['size'] = sizes
     reliability['intercoder_reliability'] = (reliability['agree'] / reliability['size'])
-    
+
     reliability = reliability.reset_index().rename(columns={'Topic_x': 'topic_id'})
 
     # compute overall values
@@ -64,3 +64,14 @@ def run_dataset_evaluation(file_1, file_2):
     # save both DataFrames
     reliability.to_csv(out_path.joinpath('eval_intercoder_reliability.csv'))
     validity.to_csv(out_path.joinpath('eval_topic_validity.csv'))
+
+def print_dataset_evaluation():
+    out_path = cfg.output_dir
+    reliability = pd.read_csv(out_path.joinpath('eval_intercoder_reliability.csv'), index_col=0)
+    validity = pd.read_csv(out_path.joinpath('eval_topic_validity.csv'), index_col=0)
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print('Evaluation of intercoder reliability:')
+        print(reliability)
+        print('\nEvaluation of topic validity:')
+        print(validity)
