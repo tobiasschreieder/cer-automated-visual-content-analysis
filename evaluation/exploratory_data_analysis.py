@@ -44,13 +44,15 @@ def exploratory_data_analysis() -> Dict[int, Dict[str, Union[float, str]]]:
             if len(element) < min_amount_elements:
                 min_amount_elements = len(element)
 
-        average_amount_elements = mean(average_amount_elements)
+        average_amount_elements = round(mean(average_amount_elements), 2)
         amount_unique_words = len(unique_words)
+        amount_images = len(data)
 
         topic_title = Topic.get(topic_number=topic_id).title
-        stats = {"title": topic_title, "average_amount_elements": average_amount_elements,
-                 "amount_empty_sets": amount_empty_sets, "min_amount_elements": min_amount_elements,
-                 "max_amount_elements": max_amount_elements, "amount_unique_words": amount_unique_words}
+        stats = {"title": topic_title, "amount_images": amount_images,
+                 "average_amount_elements": average_amount_elements, "amount_empty_sets": amount_empty_sets,
+                 "min_amount_elements": min_amount_elements, "max_amount_elements": max_amount_elements,
+                 "amount_unique_words": amount_unique_words}
 
         eda.setdefault(topic_id, stats)
 
@@ -64,13 +66,15 @@ def create_eda_md_table(eda: Dict[int, Dict[str, Union[float, str]]]) -> str:
     :return: String with MD-Table
     """
     text = "# Exploratory Data Analysis \n"
-    text += ("| Topic-ID | Title | Average Amount Elements per Image | Minimum Amount Elements per Image | "
-             "Maximum Amount Elements per Image| Amount Empty Sets | Amount Unique Words | \n")
-    text += "|---|---|---|---|---|---|---| \n"
+    text += ("| Topic-ID | Title | Amount Images | Average Amount Labels per Image | "
+             "Minimum Amount Labels per Image | Maximum Amount Labels per Image| Amount Empty Sets | "
+             "Amount Unique Labels | \n")
+    text += "|---|---|---|---|---|---|---|---| \n"
     for topic, stats in eda.items():
-        text += ("| " + str(topic) + " | " + str(stats["title"]) + " | " + str(stats["average_amount_elements"]) + " | "
-                 + str(stats["min_amount_elements"]) + " | " + str(stats["max_amount_elements"]) + " | "
-                 + str(stats["amount_empty_sets"]) + " | " + str(stats["amount_unique_words"]) + " | \n")
+        text += ("| " + str(topic) + " | " + str(stats["title"]) + " | " + str(stats["amount_images"]) + " | "
+                 + str(stats["average_amount_elements"]) + " | " + str(stats["min_amount_elements"]) + " | "
+                 + str(stats["max_amount_elements"]) + " | " + str(stats["amount_empty_sets"]) + " | "
+                 + str(stats["amount_unique_words"]) + " | \n")
 
     return text
 
