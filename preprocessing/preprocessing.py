@@ -21,7 +21,7 @@ def preprocess_image_vision(image_vision: Dict[Any, Any]) -> Dict[str, float]:
     """
     label_annotations = dict()
     for label_annotation in image_vision["labelAnnotations"]:
-        label_annotations.setdefault(label_annotation["description"], round(label_annotation["score"], 4))
+        label_annotations.setdefault(label_annotation["description"].lower(), round(label_annotation["score"], 4))
 
     return label_annotations
 
