@@ -5,6 +5,8 @@ from evaluation.dataset_evaluation import run_dataset_evaluation, print_dataset_
 from classification.classification import Classifier
 from sklearn.svm import SVC
 
+from classification.models import svm_test
+
 """
 Main Method
 """
@@ -28,4 +30,10 @@ Main Method
 #clf.evaluate()
 
 #run_dataset_evaluation('image_eval_t.txt', 'image_eval_p.txt')
-print_dataset_evaluation()
+#print_dataset_evaluation()
+
+svm = SVC()
+grid_params = svm_test
+dataset = load_dataset()
+clf = Classifier(svm, dataset, 51, grid_params=grid_params)
+clf.evaluate_grid_search()

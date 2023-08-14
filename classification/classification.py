@@ -2,7 +2,7 @@ from sklearn.metrics import *
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 from time import time
 import json
@@ -14,9 +14,10 @@ cfg = Config.get()
 class Classifier():
 
 
-    def __init__(self, clf, data:pd.DataFrame, topic_id:int, train_size:float=0.9, use_likelihood:bool=False, seed:int=1):
+    def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1):
         self.clf = clf
-        self.model_params = clf.__dict__.copy()
+        self.grid_params = grid_params
+        self.model_params = clf.get_params()
         self.model_name = str(clf).replace('()', '')
         self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
 
@@ -62,6 +63,16 @@ class Classifier():
 
             with open(classifier_path.joinpath(Path(file_name)), 'w') as f:
                 json.dump(doc, f)
+
+
+    def evaluate_grid_search(self):
+        print(f'\nStarting Grid Search\n')
+        classifier = GridSearchCV(estimator=self.clf, param_grid=self.grid_params, scoring='f1_weighted', refit=True, verbose=2)
+        classifier.fit(self.X_train, self.y_train)
+        self.clf = classifier.best_estimator_
+        self.model_params = classifier.best_params_
+        print(f'\nGrid Search done, best score: {classifier.best_score_}\n')
+        self.evaluate()
 
 
     def _create_model_input(self, df_source:pd.DataFrame, topic_id:int, train_size:float=0.9, use_likelihood:bool=False, random_state:int=1) -> pd.DataFrame:
