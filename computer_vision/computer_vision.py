@@ -1,4 +1,4 @@
-from preprocessing.data_entry import DataEntry
+from preprocessing.data_entry import DataEntry, Topic
 from config import Config
 
 from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
@@ -8,6 +8,8 @@ from clarifai_grpc.grpc.api.status import status_code_pb2
 from typing import Dict, List
 from pathlib import Path
 import json
+import random
+from random import seed
 
 
 cfg = Config.get()
@@ -102,7 +104,7 @@ def save_clarifai_output(results: Dict[str, float], image_id: str):
         json.dump(results, file)
 
 
-def run_clarifai(image_ids: List[str]):
+def run_clarifai_for_image_ids(image_ids: List[str]):
     """
     Run Clarifai Computer Vision for given image-ids
     :param image_ids: List with image-ids
@@ -115,3 +117,33 @@ def run_clarifai(image_ids: List[str]):
             save_clarifai_output(results=results, image_id=image_id)
         else:
             print("Clarifai result for image-id " + str(image_id) + " already exists! Skipping id..")
+
+
+def run_clarifai(size_dataset: int = -1, set_seed: bool = True, topic_ids: List[int] = None):
+    """
+    Run Clarify Computer Vision for given topic-ids with maximum dataset-size
+    :param size_dataset: Specify amount of images per topic (size_dataset > 0)
+    :param set_seed: If True: seed(1) is used
+    :param topic_ids: Specify topic-ids that should be used [51, 100]
+    """
+    # If no topic-ids are specified: Select all available topic-ids
+    if topic_ids is None:
+        topic_ids = [topic.number for topic in Topic.load_all()]
+
+    # Set seed if set_seed = True
+    if set_seed:
+        seed(1)
+
+    # Create image_ids
+    topic_images = dict()
+    for topic_id in topic_ids:
+        topic = Topic.get(topic_number=topic_id)
+        image_ids = Topic.get_image_ids(topic)
+        image_ids = random.sample(image_ids, k=size_dataset)
+        topic_images.setdefault(topic_id, image_ids)
+
+    # Run Clarifai for images per topic
+    for topic in topic_images:
+        print("Current topic: " + str(topic_id))
+        run_clarifai_for_image_ids(image_ids=topic_images[topic])
+
