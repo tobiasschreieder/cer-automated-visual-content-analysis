@@ -13,13 +13,18 @@ cfg = Config.get()
 
 class Classifier():
 
-
-    def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1):
+    # TODO: load dataset directly here - just take the filename as an input!
+    def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1, dataset_name:str='not specified'):
         self.clf = clf
         self.grid_params = grid_params
         self.model_params = clf.get_params()
         self.model_name = str(clf).replace('()', '')
         self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
+        self.seed = seed
+        self.topic_ids = self._get_topic_ids(data)
+        self.dataset_name = dataset_name
+        self.best_score = 0
+
 
     def fit(self):
         self.clf.fit(self.X_train, self.y_train)
@@ -53,12 +58,17 @@ class Classifier():
             classifier_path = cfg.working_dir.joinpath("classifier")
             Path(classifier_path).mkdir(parents=True, exist_ok=True)
             doc = {
+                'dataset': self.dataset_name,
+                'topics': self.topic_ids,
                 'model': self.model_name,
                 'model_params': self.model_params,
-                'accuracy': acc,
-                'precision': pre,
-                'recall': rec,
-                'f1': f1
+                'best_score': self.best_score,
+                'eval_metrics': {
+                    'accuracy': acc,
+                    'precision': pre,
+                    'recall': rec,
+                    'f1': f1
+                },
             }
 
             with open(classifier_path.joinpath(Path(file_name)), 'w') as f:
@@ -71,7 +81,8 @@ class Classifier():
         classifier.fit(self.X_train, self.y_train)
         self.clf = classifier.best_estimator_
         self.model_params = classifier.best_params_
-        print(f'\nGrid Search done, best score: {classifier.best_score_}\n')
+        self.best_score = classifier.best_score_
+        print(f'\nGrid Search done, best score: {self.best_score}\n')
         self.evaluate()
 
 
@@ -112,5 +123,8 @@ class Classifier():
         X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=random_state)
 
         return X_train, X_test, y_train, y_test
+    
+    def _get_topic_ids(self, data:pd.DataFrame) -> list[str]:
+        return data['topic_id'].unique().tolist()
     
 
