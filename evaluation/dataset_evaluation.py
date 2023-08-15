@@ -47,17 +47,21 @@ def run_dataset_evaluation(file_1, file_2):
     reliability.loc[len(reliability)] = ['all', agree_sum, size_sum, ir_all]
 
     # create topic validity DataFrame
-    # merge annotators evaluations
-    validity_p = labels[['Topic_y', 'topic_correct_p']].rename(columns={'Topic_y': 'topic'}) \
-        .groupby(by='topic').sum()
-    validity_t = labels[['Topic_x', 'topic_correct_t']].rename(columns={'Topic_x': 'topic'}) \
-        .groupby(by='topic').sum()
-    validity = pd.merge(validity_p, validity_t, left_index=True, right_index=True)
+    # merge annotators evaluations, clean DataFrame
+    validity_p = labels[['Topic_y', 'topic_correct_p']]
+    validity_t = labels[['Topic_x', 'topic_correct_t']]
+    validity = pd.merge(validity_p, validity_t, left_index=True, right_index=True) \
+        .drop(columns='Topic_y').rename(columns={'Topic_x': 'topic'})
+    
+    # add column for cases where both annotated true
+    validity['topic_correct_both'] = validity['topic_correct_p'] & validity['topic_correct_t']
 
-    # create new columns
+    # sum up by topic and create new columns
+    validity = validity.groupby(by='topic').sum()
     validity['size'] = sizes
     validity['percent_correct_p'] = (validity['topic_correct_p'] / validity['size'])
     validity['percent_correct_t'] = (validity['topic_correct_t'] / validity['size'])
+    validity['percent_correct_both'] = (validity['topic_correct_both'] / validity['size'])
 
     validity = validity.reset_index()
 
