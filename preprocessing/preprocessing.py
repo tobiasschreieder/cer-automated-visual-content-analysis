@@ -164,13 +164,13 @@ def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic
     filename = filename[:-1] + "_size=" + str(size_dataset) + ".pkl"
 
     dataset.to_pickle(datasets_path.joinpath(Path(filename)))
-    print("Clarifai dataset saved at working/clarifai_dataset.pkl.")
+    print("Clarifai dataset saved at working/datasets/" + filename + ".")
 
 
 def load_dataset(size_dataset: int = -1, use_clarifai_data: bool = False,
                  topic_ids: List[int] = None) -> pd.DataFrame:
     """
-    Load dataset (Touché, Clarifai or Combined)
+    Load dataset (Touché, Clarifai)
     :param size_dataset: Specify amount of images per topic (size_dataset > 0)
     :param use_clarifai_data: If True the Clarifai dataset will be returned instead of the Touché dataset
     :param topic_ids: Specify topic-ids that should be used [51, 100]
@@ -182,10 +182,10 @@ def load_dataset(size_dataset: int = -1, use_clarifai_data: bool = False,
 
     # Load Touché or Clarifai dataset
     # Touché or Clarifai
-    if not use_clarifai_data:
-        filename += "dataset_touche_topics="
-    else:
+    if use_clarifai_data:
         filename += "dataset_clarifai_topics="
+    else:
+        filename += "dataset_touche_topics="
 
     # Topic-ids
     if topic_ids is None:
@@ -207,10 +207,10 @@ def load_dataset(size_dataset: int = -1, use_clarifai_data: bool = False,
     except FileNotFoundError:
         print("FileNotFoundError: Dataset with this specifications does not exist in working!")
         print("Trying to create dataset..")
-        if not use_clarifai_data:
-            create_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
-        else:
+        if use_clarifai_data:
             create_clarifai_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+        else:
+            create_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
         load_dataset(size_dataset=size_dataset, topic_ids=topic_ids, use_clarifai_data=use_clarifai_data)
 
     return dataset
