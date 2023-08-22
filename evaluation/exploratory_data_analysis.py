@@ -1,23 +1,25 @@
+import pandas as pd
+
 from preprocessing.preprocessing import load_dataset
 from preprocessing.data_entry import Topic
 from config import Config
 
 from statistics import mean
-from typing import Dict, Union
+from typing import Dict, Union, List
 from pathlib import Path
 
 
 cfg = Config.get()
 
 
-def exploratory_data_analysis() -> Dict[int, Dict[str, Union[float, str]]]:
+def exploratory_data_analysis(dataset: pd.DataFrame) -> Dict[int, Dict[str, Union[float, str]]]:
     """
     Create dictionary with exploratory-data-analysis statistics
     Calculate: Average Amount Elements per Image, Minimum Amount Elements per Image, Maximum Amount Elements per Image,
     Amount Empty Sets, Amount Unique Words
+    :param dataset: Dataframe with dataset to analyse
     :return: Dictionary with results per topic
     """
-    dataset = load_dataset()
     topic_ids = list(set(dataset["topic_id"].tolist()))
 
     eda = dict()
@@ -79,14 +81,23 @@ def create_eda_md_table(eda: Dict[int, Dict[str, Union[float, str]]]) -> str:
     return text
 
 
-def run_exploratory_data_analysis():
+def run_exploratory_data_analysis(size_dataset: int = -1, use_clarifai_data: bool = False, topic_ids: List[int] = None):
     """
     Run exploratory data analysis and save analysis as MD-File
+    :param size_dataset: Specify amount of images per topic (size_dataset > 0)
+    :param use_clarifai_data: If True the Clarifai dataset will be returned instead of the Touché dataset
+    :param topic_ids: Specify topic-ids that should be used [51, 100]
     """
-    eda = exploratory_data_analysis()
+    dataset = load_dataset(size_dataset=size_dataset, use_clarifai_data=use_clarifai_data, topic_ids=topic_ids)
+    eda = exploratory_data_analysis(dataset=dataset)
     text = [create_eda_md_table(eda=eda)]
 
     # Save eda as MD-File in output_dir
-    with open(cfg.output_dir.joinpath(Path('exploratory_data_analysis.md')), 'w') as f:
+    if use_clarifai_data:
+        filename = 'clarifai_exploratory_data_analysis.md'
+    else:
+        filename = 'touche_exploratory_data_analysis.md'
+
+    with open(cfg.output_dir.joinpath(Path(filename)), 'w') as f:
         for item in text:
             f.write("%s\n" % item)

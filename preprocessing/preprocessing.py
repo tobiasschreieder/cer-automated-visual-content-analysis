@@ -71,7 +71,7 @@ def create_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: Lis
                 dataset = pd.concat([dataset, pd.DataFrame([data])], ignore_index=True)
 
     # Save DataFrame as pickle-file
-    if size_dataset is None:
+    if size_dataset == -1:
         size_dataset = "max"
 
     filename = "dataset_touche_topics="
@@ -155,7 +155,7 @@ def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic
                 dataset = pd.concat([dataset, pd.DataFrame([data])], ignore_index=True)
 
     # Save DataFrame as pickle-file
-    if size_dataset is None:
+    if size_dataset == -1:
         size_dataset = "max"
 
     filename = "dataset_clarifai_topics="
