@@ -19,6 +19,7 @@ class Classifier():
         self.grid_params = grid_params
         self.model_params = clf.get_params()
         self.model_name = str(clf).replace('()', '')
+        self.use_likelihood = use_likelihood
         self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
         self.seed = seed
         self.topic_ids = self._get_topic_ids(data)
@@ -46,12 +47,13 @@ class Classifier():
         acc = accuracy_score(self.y_test, y_pred)
         pre = precision_score(self.y_test, y_pred)
         rec = recall_score(self.y_test, y_pred)
-        f1 = f1_score(self.y_test, y_pred) # f1micro/macro??
+        f1 = f1_score(self.y_test, y_pred)
+        f1_weighted = f1_score(self.y_test, y_pred, average='weighted')
 
         if output:
             print(f'Model type: {self.model_name}')
             print(f'Model parameters: {self.model_params}')
-            print(f'accuracy:  {acc}\nprecision: {pre}\nrecall:    {rec}\nf1_score:  {f1}\n')
+            print(f'accuracy:  {acc}\nprecision: {pre}\nrecall:    {rec}\nf1_weighted:  {f1}\n')
 
         if save:
             file_name = f'eval_{self.model_name}_{time()}.json'
@@ -59,15 +61,17 @@ class Classifier():
             Path(classifier_path).mkdir(parents=True, exist_ok=True)
             doc = {
                 'dataset': self.dataset_name,
+                'use_likelihood': self.use_likelihood,
                 'topics': self.topic_ids,
                 'model': self.model_name,
                 'model_params': self.model_params,
-                'best_score': self.best_score,
+                'best_score_f1': self.best_score,
                 'eval_metrics': {
                     'accuracy': acc,
                     'precision': pre,
                     'recall': rec,
-                    'f1': f1
+                    'f1': f1,
+                    'f1_weighted': f1_weighted
                 },
             }
 
@@ -77,7 +81,7 @@ class Classifier():
 
     def evaluate_grid_search(self):
         print(f'\nStarting Grid Search\n')
-        classifier = GridSearchCV(estimator=self.clf, param_grid=self.grid_params, scoring='f1_weighted', refit=True, verbose=2)
+        classifier = GridSearchCV(estimator=self.clf, param_grid=self.grid_params, scoring='f1', refit=True, verbose=2)
         classifier.fit(self.X_train, self.y_train)
         self.clf = classifier.best_estimator_
         self.model_params = classifier.best_params_
@@ -127,4 +131,3 @@ class Classifier():
     def _get_topic_ids(self, data:pd.DataFrame) -> list[str]:
         return data['topic_id'].unique().tolist()
     
-
