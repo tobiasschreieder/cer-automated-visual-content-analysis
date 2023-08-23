@@ -7,6 +7,7 @@ This script creates two DataFrames, which are both stored as .csv files:
 
 import pandas as pd
 from config import Config
+import krippendorff
 
 cfg = Config.get()
 
@@ -45,6 +46,19 @@ def run_dataset_evaluation(file_1, file_2):
     size_sum = reliability['size'].sum()
     ir_all = reliability['agree'].sum() / reliability['size'].sum()
     reliability.loc[len(reliability)] = ['all', agree_sum, size_sum, ir_all]
+
+    # compute Krippendorff's Alpha for each topic
+    alphas = []
+    for topic in labels['Topic_x'].unique():
+        reliability_data = labels.loc[labels['Topic_x'] == topic, ['topic_correct_p', 'topic_correct_t']].astype(int)
+        ka = krippendorff.alpha(reliability_data.transpose(), level_of_measurement='nominal')
+        alphas.append(ka)
+
+    # compute the overall alpha
+    alphas.append(krippendorff.alpha(labels[['topic_correct_p', 'topic_correct_t']].astype(int).transpose(), level_of_measurement='nominal'))
+
+    # add to reliability dataframe
+    reliability['krippendorff'] = alphas
 
     # create topic validity DataFrame
     # merge annotators evaluations, clean DataFrame
