@@ -150,3 +150,5 @@ def run_label_matching(size_dataset: int = -1, threshold: float = 0.8, topic_ids
     with open(cfg.output_dir.joinpath(Path("label_matches_touche_clarifai.md")), 'w') as f:
         for item in text:
             f.write("%s\n" % item)
+
+    print("Label matching saved at: " + str(cfg.output_dir.joinpath(Path("label_matches_touche_clarifai.md"))) + ".")

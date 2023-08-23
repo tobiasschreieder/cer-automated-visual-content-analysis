@@ -9,7 +9,6 @@ from random import seed
 import pandas as pd
 from pathlib import Path
 
-
 cfg = Config.get()
 
 
@@ -26,11 +25,13 @@ def preprocess_image_vision(image_vision: Dict[Any, Any]) -> Dict[str, float]:
     return label_annotations
 
 
-def create_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: List[int] = None):
+def create_dataset(size_dataset: int = -1, set_seed: bool = True, from_clarifai: bool = True,
+                   topic_ids: List[int] = None):
     """
     Create DataFrame with image-ids, topic-ids and List with image-vision outputs; save dataset.pkl in working/
     :param size_dataset: Specify amount of images per topic (size_dataset > 0)
     :param set_seed: If True: seed(1) is used
+    :param from_clarifai: If True: Create dataset with existing-ids from Clarifai data
     :param topic_ids: Specify topic-ids that should be used [51, 100]
     """
     # If no topic-ids are specified: Select all available topic-ids
@@ -47,12 +48,19 @@ def create_dataset(size_dataset: int = -1, set_seed: bool = True, topic_ids: Lis
 
     # Create a dataset for specific topics with image IDs of a specific sample size
     topic_images = dict()
-    for topic_id in topic_ids:
-        topic = Topic.get(topic_number=topic_id)
-        image_ids = Topic.get_image_ids(topic)
-        if size_dataset != -1 and len(image_ids) > size_dataset:
-            image_ids = random.sample(image_ids, k=size_dataset)
-        topic_images.setdefault(topic_id, image_ids)
+    if from_clarifai:
+        dataset_clarifai = load_dataset(size_dataset=size_dataset, use_clarifai_data=True, topic_ids=topic_ids)
+        for topic_id in topic_ids:
+            data = dataset_clarifai[dataset_clarifai["topic_id"] == topic_id]
+            image_ids = data["image_id"].values.tolist()
+            topic_images.setdefault(topic_id, image_ids)
+    else:
+        for topic_id in topic_ids:
+            topic = Topic.get(topic_number=topic_id)
+            image_ids = Topic.get_image_ids(topic)
+            if size_dataset != -1 and len(image_ids) > size_dataset:
+                image_ids = random.sample(image_ids, k=size_dataset)
+            topic_images.setdefault(topic_id, image_ids)
 
     # Get dataset with List of image-vision outputs
     dataset = pd.DataFrame
@@ -167,50 +175,140 @@ def create_clarifai_dataset(size_dataset: int = -1, set_seed: bool = True, topic
     print("Clarifai dataset saved at working/datasets/" + filename + ".")
 
 
-def load_dataset(size_dataset: int = -1, use_clarifai_data: bool = False,
+def create_combined_dataset(size_dataset: int = -1, topic_ids: List[int] = None):
+    """
+    Create dataset with combined labels from Touché and Clarifai
+    :param size_dataset: Specify amount of images per topic (size_dataset > 0)
+    :param topic_ids: Specify topic-ids that should be used [51, 100]
+    """
+    # Test working/datasets path
+    datasets_path = cfg.working_dir.joinpath("datasets")
+    Path(datasets_path).mkdir(parents=True, exist_ok=True)
+
+    # Load / create Touché and Clarifai dataset with given specifications
+    dataset_touche = load_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+    dataset_touche.set_index(["image_id", "topic_id"], inplace=True)
+    dataset_clarifai = load_dataset(size_dataset=size_dataset, topic_ids=topic_ids, use_clarifai_data=True)
+    dataset_clarifai.set_index(["image_id", "topic_id"], inplace=True)
+
+    # Combine datasets
+    not_valid = 0
+    dataset = pd.DataFrame
+    first_iteration = True
+    for id in dataset_touche.index:
+        # Combine labels
+        labels_touche = dataset_touche["data"].loc[id]
+        try:
+            labels_clarifai = dataset_clarifai["data"].loc[id]
+        except KeyError:
+            print("ID: " + str(id) + " is not valid!")
+            labels_clarifai = dict()
+            not_valid += 1
+
+        labels = labels_touche
+        for label, score in labels_clarifai.items():
+            if label not in labels:
+                labels.setdefault(label, score)
+            else:
+                if labels[label] < score:
+                    labels[label] = score
+
+        # Create DataFrame
+        data = {"image_id": id[0], "topic_id": id[1], "data": labels}
+        if first_iteration:
+            dataset = pd.DataFrame(data=[data])
+            first_iteration = False
+        else:
+            dataset = pd.concat([dataset, pd.DataFrame([data])], ignore_index=True)
+
+    dataset.reset_index(names=['image_id', 'topic_id'], allow_duplicates=True)
+
+    # Save DataFrame as pickle-file
+    if size_dataset == -1:
+        size_dataset = "max"
+
+    filename = "dataset_combined_topics="
+    for topic_id in topic_ids:
+        filename += str(topic_id) + "+"
+    filename = filename[:-1] + "_size=" + str(size_dataset) + ".pkl"
+
+    dataset.to_pickle(datasets_path.joinpath(Path(filename)))
+    print("Clarifai dataset saved at working/datasets/" + filename + ".")
+
+
+def load_dataset(size_dataset: int = -1, use_clarifai_data: bool = False, use_combined_dataset: bool = False,
                  topic_ids: List[int] = None) -> pd.DataFrame:
     """
-    Load dataset (Touché, Clarifai)
+    Load dataset (Touché, Clarifai, Combined)
     :param size_dataset: Specify amount of images per topic (size_dataset > 0)
     :param use_clarifai_data: If True the Clarifai dataset will be returned instead of the Touché dataset
+    :param use_combined_dataset: If True use a combined dataset from Touché and Clarifai
     :param topic_ids: Specify topic-ids that should be used [51, 100]
     :return: DataFrame with saved data
     """
     path = cfg.working_dir.joinpath(Path("datasets"))
     filename = str()
-    dataset = pd.DataFrame
 
-    # Load Touché or Clarifai dataset
-    # Touché or Clarifai
-    if use_clarifai_data:
-        filename += "dataset_clarifai_topics="
-    else:
-        filename += "dataset_touche_topics="
+    # Building combined dataset
+    if use_combined_dataset:
+        filename += "dataset_combined_topics="
 
-    # Topic-ids
-    if topic_ids is None:
-        topic_ids = [topic.number for topic in Topic.load_all()]
-    for topic_id in topic_ids:
-        filename += str(topic_id) + "+"
-    filename = filename[:-1] + "_size="
+        # Topic-ids
+        if topic_ids is None:
+            topic_ids = [topic.number for topic in Topic.load_all()]
+        for topic_id in topic_ids:
+            filename += str(topic_id) + "+"
+        filename = filename[:-1] + "_size="
 
-    # Size dataset
-    if size_dataset > 0:
-        filename += str(size_dataset)
-    else:
-        filename += "max"
-    filename += ".pkl"
-
-    # Load dataset
-    try:
-        dataset = pd.read_pickle(path.joinpath(Path(filename)))
-    except FileNotFoundError:
-        print("FileNotFoundError: Dataset with this specifications does not exist in working!")
-        print("Trying to create dataset..")
-        if use_clarifai_data:
-            create_clarifai_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+        # Size dataset
+        if size_dataset > 0:
+            filename += str(size_dataset)
         else:
-            create_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
-        load_dataset(size_dataset=size_dataset, topic_ids=topic_ids, use_clarifai_data=use_clarifai_data)
+            filename += "max"
+        filename += ".pkl"
+
+        # Load dataset
+        try:
+            dataset = pd.read_pickle(path.joinpath(Path(filename)))
+        except FileNotFoundError:
+            print("FileNotFoundError: Dataset with this specifications does not exist in working!")
+            print("Trying to create dataset..")
+            create_combined_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+            dataset = load_dataset(size_dataset=size_dataset, topic_ids=topic_ids, use_combined_dataset=True)
+
+    # Loading single dataset
+    else:
+        # Load Touché or Clarifai dataset
+        # Touché or Clarifai
+        if use_clarifai_data:
+            filename += "dataset_clarifai_topics="
+        else:
+            filename += "dataset_touche_topics="
+
+        # Topic-ids
+        if topic_ids is None:
+            topic_ids = [topic.number for topic in Topic.load_all()]
+        for topic_id in topic_ids:
+            filename += str(topic_id) + "+"
+        filename = filename[:-1] + "_size="
+
+        # Size dataset
+        if size_dataset > 0:
+            filename += str(size_dataset)
+        else:
+            filename += "max"
+        filename += ".pkl"
+
+        # Load dataset
+        try:
+            dataset = pd.read_pickle(path.joinpath(Path(filename)))
+        except FileNotFoundError:
+            print("FileNotFoundError: Dataset with this specifications does not exist in working!")
+            print("Trying to create dataset..")
+            if use_clarifai_data:
+                create_clarifai_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+            else:
+                create_dataset(size_dataset=size_dataset, topic_ids=topic_ids)
+            dataset = load_dataset(size_dataset=size_dataset, topic_ids=topic_ids, use_clarifai_data=use_clarifai_data)
 
     return dataset

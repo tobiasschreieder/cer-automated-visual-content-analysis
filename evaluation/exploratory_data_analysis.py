@@ -81,23 +81,31 @@ def create_eda_md_table(eda: Dict[int, Dict[str, Union[float, str]]]) -> str:
     return text
 
 
-def run_exploratory_data_analysis(size_dataset: int = -1, use_clarifai_data: bool = False, topic_ids: List[int] = None):
+def run_exploratory_data_analysis(size_dataset: int = -1, use_clarifai_data: bool = False,
+                                  use_combined_data: bool = False, topic_ids: List[int] = None):
     """
     Run exploratory data analysis and save analysis as MD-File
     :param size_dataset: Specify amount of images per topic (size_dataset > 0)
     :param use_clarifai_data: If True the Clarifai dataset will be returned instead of the Touché dataset
+    :param use_combined_data: If True use a combined dataset from Touché and Clarifai
     :param topic_ids: Specify topic-ids that should be used [51, 100]
     """
-    dataset = load_dataset(size_dataset=size_dataset, use_clarifai_data=use_clarifai_data, topic_ids=topic_ids)
+    dataset = load_dataset(size_dataset=size_dataset, use_clarifai_data=use_clarifai_data,
+                           use_combined_dataset=use_combined_data, topic_ids=topic_ids)
     eda = exploratory_data_analysis(dataset=dataset)
     text = [create_eda_md_table(eda=eda)]
 
     # Save eda as MD-File in output_dir
-    if use_clarifai_data:
-        filename = 'clarifai_exploratory_data_analysis.md'
+    if use_combined_data:
+        filename = 'combined_exploratory_data_analysis.md'
     else:
-        filename = 'touche_exploratory_data_analysis.md'
+        if use_clarifai_data:
+            filename = 'clarifai_exploratory_data_analysis.md'
+        else:
+            filename = 'touche_exploratory_data_analysis.md'
 
     with open(cfg.output_dir.joinpath(Path(filename)), 'w') as f:
         for item in text:
             f.write("%s\n" % item)
+
+    print("Exploratory data analysis saved at: " + str(cfg.output_dir.joinpath(Path(filename))) + ".")

@@ -144,6 +144,5 @@ def run_clarifai(size_dataset: int = -1, set_seed: bool = True, topic_ids: List[
 
     # Run Clarifai for images per topic
     for topic in topic_images:
-        print("Current topic: " + str(topic_id))
+        print("Current topic: " + str(topic))
         run_clarifai_for_image_ids(image_ids=topic_images[topic])
-
