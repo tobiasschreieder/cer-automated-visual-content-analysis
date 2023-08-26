@@ -1,9 +1,8 @@
-from sklearn.metrics import *
 from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from time import time
 import json
 
@@ -13,56 +12,81 @@ cfg = Config.get()
 
 class Classifier():
 
-    # TODO: load dataset directly here - just take the filename as an input!
     def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1, dataset_name:str='not specified'):
-        self.clf = clf
-        self.grid_params = grid_params
-        self.model_params = clf.get_params()
-        self.model_name = str(clf).replace('()', '')
+        
+        # general parameters
         self.use_likelihood = use_likelihood
-        self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
         self.seed = seed
-        self.topic_ids = self._get_topic_ids(data)
+        self.pred_topic_id = topic_id
+
+        # classifier, its name and its initial parameters
+        self.clf = clf
+        self.model_name = str(clf).replace('()', '')
+        self.model_params = clf.get_params()
+
+        # dataset
         self.dataset_name = dataset_name
+        self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
+
+        # grid search regarding
+        self.grid_params = grid_params
         self.best_score = 0
+        
 
 
     def fit(self):
+        '''
+        Fits the model of this instance to its data.
+        '''
         self.clf.fit(self.X_train, self.y_train)
 
 
     def predict(self, X=None):
+        '''
+        Predicts data with the model of this instance. If no data is specified, the test data of this instance will be used.
+        :param X: dataset to predict from
+        :return: a vector y with the predictions for X.
+        '''
         if X is None:
             return self.clf.predict(self.X_test)
         return self.clf.predict(X)
 
 
     def evaluate(self, y_pred=None, output=True, save=True):
+        '''
+        Evaluates the classifier of the instance on a specified predicted set of data.
+        If no test set is specified, the set will be computed through prediction of self.X_test.
+        :param y_pred: Predicted values to evaluate
+        :param output: Output results to console
+        :param save: Save output as a json-file
+        '''
 
         # evaluate on predictions of test set
         if y_pred is None:
             y_pred = self.predict(self.X_test)
 
-        # metrics
+        # compute metrics
         acc = accuracy_score(self.y_test, y_pred)
         pre = precision_score(self.y_test, y_pred)
         rec = recall_score(self.y_test, y_pred)
         f1 = f1_score(self.y_test, y_pred)
         f1_weighted = f1_score(self.y_test, y_pred, average='weighted')
 
+        # optional: print results
         if output:
             print(f'Model type: {self.model_name}')
             print(f'Model parameters: {self.model_params}')
             print(f'accuracy:  {acc}\nprecision: {pre}\nrecall:    {rec}\nf1_weighted:  {f1}\n')
 
+        # optional: save to json-file
         if save:
             file_name = f'eval_{self.model_name}_{time()}.json'
-            classifier_path = cfg.working_dir.joinpath("classifier")
+            classifier_path = cfg.output_dir.joinpath("classifier")
             Path(classifier_path).mkdir(parents=True, exist_ok=True)
             doc = {
                 'dataset': self.dataset_name,
                 'use_likelihood': self.use_likelihood,
-                'topics': self.topic_ids,
+                'pred_topic_id': self.pred_topic_id,
                 'model': self.model_name,
                 'model_params': self.model_params,
                 'best_score_f1': self.best_score,
@@ -74,19 +98,25 @@ class Classifier():
                     'f1_weighted': f1_weighted
                 },
             }
-
             with open(classifier_path.joinpath(Path(file_name)), 'w') as f:
                 json.dump(doc, f)
 
 
     def evaluate_grid_search(self):
-        print(f'\nStarting Grid Search\n')
+        '''
+        Performs a grid search on the specified grid parameters of this instance.
+        Calls the self.evaluate method for further analyzing the best model of the search. 
+        '''
+        # defining and starting the grid search
         classifier = GridSearchCV(estimator=self.clf, param_grid=self.grid_params, scoring='f1', refit=True, verbose=2)
         classifier.fit(self.X_train, self.y_train)
+
+        # store the best classifier, its parameters and score
         self.clf = classifier.best_estimator_
         self.model_params = classifier.best_params_
         self.best_score = classifier.best_score_
-        print(f'\nGrid Search done, best score: {self.best_score}\n')
+        
+        # evaluate the best classifier
         self.evaluate()
 
 
@@ -127,7 +157,4 @@ class Classifier():
         X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=random_state)
 
         return X_train, X_test, y_train, y_test
-    
-    def _get_topic_ids(self, data:pd.DataFrame) -> list[str]:
-        return data['topic_id'].unique().tolist()
     
