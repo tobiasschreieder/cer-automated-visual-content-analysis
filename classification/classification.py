@@ -13,6 +13,16 @@ cfg = Config.get()
 class Classifier():
 
     def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1, dataset_name:str='not specified'):
+        '''
+        Creates an instance of the Classifier.
+        :param clf: Instance of the classifier to be used.
+        :param data: Data set to use for classification.
+        :param topic_id: Topic to use as predicted variable.
+        :param train_size: Specification of the train-test-split.
+        :param use_likelihood: indicates whether likelihood or binary coding of the data is to be used.
+        :param seed: Seeding value for the train-test-split.
+        :param dataset_name: Name of the dataset to be stored in a JSON evaluation file.
+        '''
         
         # general parameters
         self.use_likelihood = use_likelihood
@@ -32,7 +42,6 @@ class Classifier():
         self.grid_params = grid_params
         self.best_score = 0
         
-
 
     def fit(self):
         '''
