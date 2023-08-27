@@ -14,16 +14,27 @@ import json
 Main Method
 """
 
+#########################################
+
+# This file is ready to run
+# Note that the grid searching process can take a longer time.
+# (11 hours on the system we used)
+
+#########################################
+
 # Exploratory Data Analysis
 run_exploratory_data_analysis()
 
 # evaluation of data set coding
-run_dataset_evaluation('image_eval_t.txt', 'image_eval_p.txt')
+run_dataset_evaluation('image_eval_a.txt', 'image_eval_b.txt')
 print_dataset_evaluation()
 
 
+# load models for grid search
 with open('classification/models.json', 'r') as f:
     models = json.load(f)
+
+# load or create datasets
 data = {
     # clariafai
     'dataset_clarifai_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55,76,81], use_clarifai_data=True),
@@ -33,15 +44,19 @@ data = {
 
     # google
     'dataset_touche_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55,76,81]),
+    # five-topic-case
     'dataset_touche_topics=51+55+76+81+100_size=900.pkl': load_dataset(size_dataset=900,  topic_ids=[51,55,76,81,100])
 }
 
-
+# for all defined models...
 for key in models.keys():
+    # ... and all defined data sets
     for file in data.keys():
 
+        # get all topic_ids for processing
         topics = data[file]['topic_id'].unique()
 
+        # init classifiers
         if key == 'svm':
             model = SVC()
         elif key == 'gbc':
@@ -51,8 +66,10 @@ for key in models.keys():
         elif key == 'pac':
             model = PassiveAggressiveClassifier()
 
+        # parameters to be used in the grid search
         grid_params = models[key]
 
+        # init and run the classifier/grid search for every topic
         for topic in topics:
 
             print(f'Start performing BINARY grid search for {file}\nTopic: {topic} out of {list(topics)}\nClassifier: {str(model)}')
