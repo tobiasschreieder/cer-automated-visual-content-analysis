@@ -1,5 +1,6 @@
 from preprocessing.preprocessing import load_dataset
 from evaluation.exploratory_data_analysis import run_exploratory_data_analysis
+from computer_vision.label_matching import run_label_matching
 from evaluation.dataset_evaluation import run_dataset_evaluation, print_dataset_evaluation
 from classification.classification import Classifier
 
@@ -10,9 +11,6 @@ from sklearn.linear_model import PassiveAggressiveClassifier
 
 import json
 
-"""
-Main Method
-"""
 
 #########################################
 
@@ -23,7 +21,10 @@ Main Method
 #########################################
 
 # Exploratory Data Analysis
-run_exploratory_data_analysis()
+run_exploratory_data_analysis(size_dataset=900, topic_ids=[51, 55, 76, 81, 100])
+run_exploratory_data_analysis(size_dataset=900, topic_ids=[51, 55, 76, 81, 100], use_clarifai_data=True)
+run_exploratory_data_analysis(size_dataset=900, topic_ids=[51, 55, 76, 81, 100], use_combined_data=True)
+run_label_matching(size_dataset=900, topic_ids=[51, 55, 76, 81, 100])
 
 # evaluation of data set coding
 run_dataset_evaluation('image_eval_a.txt', 'image_eval_b.txt')
@@ -37,15 +38,18 @@ with open('classification/models.json', 'r') as f:
 # load or create datasets
 data = {
     # clariafai
-    'dataset_clarifai_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55,76,81], use_clarifai_data=True),
+    'dataset_clarifai_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55, 76, 81],
+                                                                  use_clarifai_data=True),
 
     # combined
-    'dataset_combined_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55,76,81], use_combined_dataset=True),
+    'dataset_combined_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55, 76, 81],
+                                                                  use_combined_dataset=True),
 
     # google
-    'dataset_touche_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55,76,81]),
+    'dataset_touche_topics=55+76+81_size=900.pkl': load_dataset(size_dataset=900, topic_ids=[55, 76, 81]),
     # five-topic-case
-    'dataset_touche_topics=51+55+76+81+100_size=900.pkl': load_dataset(size_dataset=900,  topic_ids=[51,55,76,81,100])
+    'dataset_touche_topics=51+55+76+81+100_size=900.pkl': load_dataset(size_dataset=900,
+                                                                       topic_ids=[51, 55, 76, 81, 100])
 }
 
 # for all defined models...
@@ -72,12 +76,14 @@ for key in models.keys():
         # init and run the classifier/grid search for every topic
         for topic in topics:
 
-            print(f'Start performing BINARY grid search for {file}\nTopic: {topic} out of {list(topics)}\nClassifier: {str(model)}')
+            print(f'Start performing BINARY grid search for {file}\nTopic: {topic} out of {list(topics)}\nClassifier: '
+                  f'{str(model)}')
             # don't use likelihood
             clf = Classifier(model, data[file], topic, grid_params=grid_params, dataset_name=file, use_likelihood=False)
             clf.evaluate_grid_search()
 
-            print(f'Start performing LIKELIHOOD grid search for {file}\nTopic: {topic} out of {list(topics)}\nClassifier: {str(model)}')
+            print(f'Start performing LIKELIHOOD grid search for {file}\nTopic: {topic} out of {list(topics)}\n'
+                  f'Classifier: {str(model)}')
             # use likelihood
             clf = Classifier(model, data[file], topic, grid_params=grid_params, dataset_name=file, use_likelihood=True)
             clf.evaluate_grid_search()

@@ -1,0 +1,6 @@
+,topic,topic_correct_p,topic_correct_t,topic_correct_both,size,percent_correct_p,percent_correct_t,percent_correct_both
+0,51,69,68,61,100,0.69,0.68,0.61
+1,55,86,80,78,100,0.86,0.8,0.78
+2,76,86,70,69,100,0.86,0.7,0.69
+3,81,82,85,79,100,0.82,0.85,0.79
+4,100,67,74,64,100,0.67,0.74,0.64

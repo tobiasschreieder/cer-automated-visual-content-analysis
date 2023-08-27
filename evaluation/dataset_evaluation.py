@@ -1,15 +1,16 @@
-'''
+"""
 We evaluated the dataset by manually labeling 100 samples of each used topic.
 This script creates two DataFrames, which are both stored as .csv files:
 - eval_intercoder_reliability.csv, which contains the IR scores of the annotators
 - eval_validity.csv, which contains the overall numbers regarding the belonging of images to these topics
-'''
+"""
 
 import pandas as pd
 from config import Config
 import krippendorff
 
 cfg = Config.get()
+
 
 def run_dataset_evaluation(file_1, file_2):
     work_path = cfg.working_dir
@@ -55,7 +56,8 @@ def run_dataset_evaluation(file_1, file_2):
         alphas.append(ka)
 
     # compute the overall alpha
-    alphas.append(krippendorff.alpha(labels[['topic_correct_b', 'topic_correct_a']].astype(int).transpose(), level_of_measurement='nominal'))
+    alphas.append(krippendorff.alpha(labels[['topic_correct_b', 'topic_correct_a']].astype(int).transpose(),
+                                     level_of_measurement='nominal'))
 
     # add to reliability dataframe
     reliability['krippendorff'] = alphas

@@ -1,5 +1,3 @@
-import operator
-
 from preprocessing.data_entry import Topic, DataEntry, Clarifai
 from config import Config
 
@@ -8,6 +6,8 @@ import random
 from random import seed
 import pandas as pd
 from pathlib import Path
+import operator
+
 
 cfg = Config.get()
 

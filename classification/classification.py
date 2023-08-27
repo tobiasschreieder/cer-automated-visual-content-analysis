@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -8,12 +9,14 @@ import json
 
 from config import Config
 
+
 cfg = Config.get()
 
-class Classifier():
 
-    def __init__(self, clf, data:pd.DataFrame, topic_id:int, grid_params:list=None, train_size:float=0.9, use_likelihood:bool=False, seed:int=1, dataset_name:str='not specified'):
-        '''
+class Classifier:
+    def __init__(self, clf, data:pd.DataFrame, topic_id: int, grid_params: list = None, train_size: float = 0.9,
+                 use_likelihood: bool = False, seed: int = 1, dataset_name: str = 'not specified'):
+        """
         Creates an instance of the Classifier.
         :param clf: Instance of the classifier to be used.
         :param data: Data set to use for classification.
@@ -22,8 +25,7 @@ class Classifier():
         :param use_likelihood: indicates whether likelihood or binary coding of the data is to be used.
         :param seed: Seeding value for the train-test-split.
         :param dataset_name: Name of the dataset to be stored in a JSON evaluation file.
-        '''
-        
+        """
         # general parameters
         self.use_likelihood = use_likelihood
         self.seed = seed
@@ -36,40 +38,38 @@ class Classifier():
 
         # dataset
         self.dataset_name = dataset_name
-        self.X_train, self.X_test, self.y_train, self.y_test = self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood, random_state=seed)
+        self.X_train, self.X_test, self.y_train, self.y_test = (
+            self._create_model_input(data, topic_id, train_size=train_size, use_likelihood=use_likelihood,
+                                     random_state=seed))
 
         # grid search regarding
         self.grid_params = grid_params
         self.best_score = 0
-        
 
     def fit(self):
-        '''
+        """
         Fits the model of this instance to its data.
-        '''
+        """
         self.clf.fit(self.X_train, self.y_train)
 
-
-    def predict(self, X=None):
-        '''
-        Predicts data with the model of this instance. If no data is specified, the test data of this instance will be used.
+    def predict(self, X = None):
+        """
+        Predicts data with the model of this instance. If no data is specified, test data of this instance will be used.
         :param X: dataset to predict from
         :return: a vector y with the predictions for X.
-        '''
+        """
         if X is None:
             return self.clf.predict(self.X_test)
         return self.clf.predict(X)
 
-
-    def evaluate(self, y_pred=None, output=True, save=True):
-        '''
+    def evaluate(self, y_pred = None, output=True, save=True):
+        """
         Evaluates the classifier of the instance on a specified predicted set of data.
         If no test set is specified, the set will be computed through prediction of self.X_test.
         :param y_pred: Predicted values to evaluate
         :param output: Output results to console
         :param save: Save output as a json-file
-        '''
-
+        """
         # evaluate on predictions of test set
         if y_pred is None:
             y_pred = self.predict(self.X_test)
@@ -110,12 +110,11 @@ class Classifier():
             with open(classifier_path.joinpath(Path(file_name)), 'w') as f:
                 json.dump(doc, f)
 
-
     def evaluate_grid_search(self):
-        '''
+        """
         Performs a grid search on the specified grid parameters of this instance.
         Calls the self.evaluate method for further analyzing the best model of the search. 
-        '''
+        """
         # defining and starting the grid search
         classifier = GridSearchCV(estimator=self.clf, param_grid=self.grid_params, scoring='f1', refit=True, verbose=2)
         classifier.fit(self.X_train, self.y_train)
@@ -128,15 +127,15 @@ class Classifier():
         # evaluate the best classifier
         self.evaluate()
 
-
-    def _create_model_input(self, df_source:pd.DataFrame, topic_id:int, train_size:float=0.9, use_likelihood:bool=False, random_state:int=1) -> pd.DataFrame:
-        '''
+    def _create_model_input(self, df_source: pd.DataFrame, topic_id: int, train_size: float = 0.9,
+                            use_likelihood: bool = False, random_state: int = 1) -> Any:
+        """
         Reshape data to input format for ML-models and perform a train-test-split
         :param df_source: DataFrame to use
         :param topic_id: ID of topic that represents the dependent variable
         :param use_likelihood: determine wether to use binary or likelihood values
         :return: Matrix X_train and X_test of shape (n_images / , n_features), array y with length n_images
-        '''
+        """
         # extract all features
         features = set({})
         for _, row in df_source.iterrows():
@@ -163,7 +162,8 @@ class Classifier():
                     X.loc[idx, k] = 1
 
         # train-test-split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, random_state=random_state)
+        x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=train_size,
+                                                            random_state=random_state)
 
-        return X_train, X_test, y_train, y_test
+        return x_train, x_test, y_train, y_test
     
